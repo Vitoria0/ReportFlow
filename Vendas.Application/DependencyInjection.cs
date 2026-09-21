@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Vendas.Application.Abstractions;
 using Vendas.Application.UseCases.Relatorios;
 using Vendas.Application.UseCases.Vendas;
 
@@ -14,6 +15,8 @@ public static class DependencyInjection
         services.AddScoped<SolicitarRelatorioHandler>();
         services.AddScoped<ConsultarRelatorioHandler>();
         services.AddScoped<ProcessarRelatorioHandler>();
+        services.AddScoped<IReportRequestFailureHandler>(provider =>
+            provider.GetRequiredService<ProcessarRelatorioHandler>());
         return services;
     }
 }

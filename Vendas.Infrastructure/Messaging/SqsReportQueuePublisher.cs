@@ -17,7 +17,7 @@ public sealed class SqsReportQueuePublisher(
         CancellationToken cancellationToken)
     {
         var queueName = configuration["AWS:ReportQueueName"] ?? "sales-reports";
-        var queueUrl = await GetOrCreateQueueAsync(queueName, cancellationToken);
+        var queueUrl = await EnsureQueueWithDeadLetterQueueAsync(queueName, cancellationToken);
         var message = new
         {
             ReportId = reportId,
@@ -30,6 +30,32 @@ public sealed class SqsReportQueuePublisher(
             QueueUrl = queueUrl,
             MessageBody = JsonSerializer.Serialize(message, new JsonSerializerOptions(JsonSerializerDefaults.Web))
         }, cancellationToken);
+    }
+
+    private async Task<string> EnsureQueueWithDeadLetterQueueAsync(
+        string queueName,
+        CancellationToken cancellationToken)
+    {
+        var deadLetterQueueName = configuration["AWS:ReportDeadLetterQueueName"] ?? $"{queueName}-dlq";
+        var maxReceiveAttempts = GetMaxReceiveAttempts();
+        var deadLetterQueueUrl = await GetOrCreateQueueAsync(deadLetterQueueName, cancellationToken);
+        var deadLetterQueueArn = await GetQueueArnAsync(deadLetterQueueUrl, cancellationToken);
+        var queueUrl = await GetOrCreateQueueAsync(queueName, cancellationToken);
+
+        await sqsClient.SetQueueAttributesAsync(new SetQueueAttributesRequest
+        {
+            QueueUrl = queueUrl,
+            Attributes = new Dictionary<string, string>
+            {
+                [QueueAttributeName.RedrivePolicy] = JsonSerializer.Serialize(new
+                {
+                    deadLetterTargetArn = deadLetterQueueArn,
+                    maxReceiveCount = maxReceiveAttempts.ToString()
+                })
+            }
+        }, cancellationToken);
+
+        return queueUrl;
     }
 
     private async Task<string> GetOrCreateQueueAsync(string queueName, CancellationToken cancellationToken)
@@ -46,4 +72,18 @@ public sealed class SqsReportQueuePublisher(
             }, cancellationToken)).QueueUrl;
         }
     }
+
+    private async Task<string> GetQueueArnAsync(string queueUrl, CancellationToken cancellationToken)
+    {
+        var response = await sqsClient.GetQueueAttributesAsync(
+            queueUrl,
+            new List<string> { QueueAttributeName.QueueArn },
+            cancellationToken);
+        return response.Attributes[QueueAttributeName.QueueArn];
+    }
+
+    private int GetMaxReceiveAttempts() =>
+        int.TryParse(configuration["AWS:MaxReceiveAttempts"], out var value) && value > 0
+            ? value
+            : 3;
 }

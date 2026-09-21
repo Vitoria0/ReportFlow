@@ -7,7 +7,7 @@ public sealed class ProcessarRelatorioHandler(
     IReportRequestRepository reportRequestRepository,
     IVendaRepository vendaRepository,
     IRelatorioWriter relatorioWriter,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork) : IReportRequestFailureHandler
 {
     public async Task<RelatorioProcessadoResponse?> HandleAsync(
         ProcessarRelatorioCommand command,
@@ -57,5 +57,18 @@ public sealed class ProcessarRelatorioHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return resultado;
+    }
+
+    public async Task MarkFailedAsync(
+        Guid reportId,
+        string errorMessage,
+        CancellationToken cancellationToken)
+    {
+        var reportRequest = await reportRequestRepository.GetByIdAsync(reportId, cancellationToken);
+        if (reportRequest is null)
+            return;
+
+        reportRequest.MarkFailed(errorMessage);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

@@ -102,3 +102,9 @@ dotnet run --project .\Vendas.Worker
 O worker recebe mensagens com `reportId`, `startDate` e `endDate`, busca as vendas no período diretamente no SQL Server, gera `reports/relatorio-{reportId}.json`, altera a solicitação para `Processing` e depois `Completed`. A mensagem só é removida após a geração do arquivo. Falhas deixam a mensagem na fila para o retry padrão do SQS; mensagens inválidas ou com `reportId` inexistente são descartadas como não processáveis.
 
 O JSON contém cabeçalho, quantidade de vendas, quantidade de itens vendidos, faturamento total, ticket médio e detalhamento agrupado por produto. Sem vendas, faturamento e ticket médio são `0`.
+
+## Retry e Dead Letter Queue
+
+Falhas temporárias não removem a mensagem da fila principal. Após o visibility timeout de 60 segundos, o SQS disponibiliza a mensagem novamente para o Worker. O limite padrão é de 3 recebimentos, configurado em `AWS:MaxReceiveAttempts`.
+
+Após exceder esse limite, a fila `sales-reports` encaminha a mensagem para `sales-reports-dlq` por meio da redrive policy. Na última tentativa, a solicitação persistida é marcada como `Failed` com a mensagem do erro. Em uma tentativa bem-sucedida, o Worker marca a solicitação como `Completed` e remove a mensagem.
