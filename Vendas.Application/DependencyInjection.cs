@@ -12,6 +12,7 @@ public static class DependencyInjection
         services.AddScoped<ListarVendasHandler>();
         services.AddScoped<ObterVendaPorIdHandler>();
         services.AddScoped<SolicitarRelatorioHandler>();
+        services.AddScoped<ConsultarRelatorioHandler>();
         services.AddScoped<ProcessarRelatorioHandler>();
         return services;
     }

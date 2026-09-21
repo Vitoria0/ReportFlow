@@ -89,6 +89,8 @@ A API persiste a solicitação com status `Pending`, publica uma mensagem na fil
 }
 ```
 
+Consulte o status da solicitação em `GET /reports/{id}`. A resposta informa `Pending`, `Processing`, `Completed` ou `Failed`, além de `createdAt`, `processedAt` e `errorMessage` quando aplicável. Uma solicitação inexistente retorna `404 Not Found`.
+
 ## Worker SQS
 
 Em outro terminal, inicie o consumidor:
