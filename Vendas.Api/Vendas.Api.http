@@ -1,0 +1,6 @@
+@Vendas.Api_HostAddress = http://localhost:5189
+
+GET {{Vendas.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
