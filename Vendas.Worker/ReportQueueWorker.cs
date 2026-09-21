@@ -49,7 +49,10 @@ public sealed class ReportQueueWorker(
         }
         catch (JsonException exception)
         {
-            logger.LogWarning(exception, "Mensagem SQS invalida; permanecera sujeita ao retry {MessageId}", message.MessageId);
+            logger.LogWarning(
+                "Mensagem SQS invalida; permanecera sujeita ao retry {MessageId} {ErrorType}",
+                message.MessageId,
+                exception.GetType().Name);
             return;
         }
 
@@ -59,10 +62,19 @@ public sealed class ReportQueueWorker(
             return;
         }
 
+        logger.LogInformation(
+            "Mensagem recebida para processamento {ReportId} {MessageId}",
+            queueMessage.ReportId,
+            message.MessageId);
+
         try
         {
             using var scope = scopeFactory.CreateScope();
             var handler = scope.ServiceProvider.GetRequiredService<ProcessarRelatorioHandler>();
+            logger.LogInformation(
+                "Processamento iniciado {ReportId}",
+                queueMessage.ReportId);
+
             var processed = await handler.HandleAsync(new ProcessarRelatorioCommand(
                 queueMessage.ReportId,
                 queueMessage.StartDate,
@@ -75,15 +87,15 @@ public sealed class ReportQueueWorker(
                     queueMessage.ReportId,
                     message.MessageId);
             }
-                    else
-                    {
-                    logger.LogInformation(
-                        "Relatorio {ReportId} processado com {QuantidadeVendas} vendas e total {ValorTotal}. Possui vendas: {PossuiVendas}",
-                        processed.ReportId,
-                        processed.QuantidadeVendas,
-                        processed.ValorTotal,
-                        processed.PossuiVendas);
-                    }
+            else
+            {
+                logger.LogInformation(
+                    "Processamento concluido com sucesso {ReportId} {QuantidadeVendas} {ValorTotal} {PossuiVendas}",
+                    processed.ReportId,
+                    processed.QuantidadeVendas,
+                    processed.ValorTotal,
+                    processed.PossuiVendas);
+            }
 
             await DeleteMessageAsync(queueUrl, message, cancellationToken);
         }
@@ -104,19 +116,21 @@ public sealed class ReportQueueWorker(
                     exception.Message,
                     cancellationToken);
                 logger.LogError(
-                    exception,
-                    "ReportRequest {ReportId} falhou definitivamente na tentativa {ReceiveCount}; mensagem sera encaminhada para a DLQ",
+                    "Processamento falhou definitivamente {ReportId} {ReceiveCount} {ErrorType} {ErrorMessage}",
                     queueMessage.ReportId,
-                    receiveCount);
+                    receiveCount,
+                    exception.GetType().Name,
+                    exception.Message);
             }
             else
             {
                 logger.LogError(
-                    exception,
-                    "Falha temporaria ao processar ReportRequest {ReportId}; tentativa {ReceiveCount} de {MaxReceiveAttempts}, mensagem permanecera para retry",
+                    "Erro temporario no processamento {ReportId} {ReceiveCount} {MaxReceiveAttempts} {ErrorType} {ErrorMessage}",
                     queueMessage.ReportId,
                     receiveCount,
-                    maxReceiveAttempts);
+                    maxReceiveAttempts,
+                    exception.GetType().Name,
+                    exception.Message);
             }
         }
     }
