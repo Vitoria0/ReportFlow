@@ -8,6 +8,7 @@ API .NET 8 para registro de vendas com SQL Server em Docker.
 - `Vendas.Application`: casos de uso, contratos e abstracoes de persistencia.
 - `Vendas.Infrastructure`: Entity Framework Core, SQL Server e repositorios.
 - `Vendas.Api`: controllers, contratos HTTP, Swagger e composicao da aplicacao.
+- `Vendas.Worker`: consumidor SQS e processamento assíncrono das solicitações.
 
 As dependencias seguem o fluxo `Api -> Application -> Domain` e `Api -> Infrastructure -> Application/Domain`.
 
@@ -87,3 +88,13 @@ A API persiste a solicitação com status `Pending`, publica uma mensagem na fil
   "status": "Pending"
 }
 ```
+
+## Worker SQS
+
+Em outro terminal, inicie o consumidor:
+
+```powershell
+dotnet run --project .\Vendas.Worker
+```
+
+O worker recebe mensagens com `reportId`, `startDate` e `endDate`, altera a solicitação para `Processing`, executa o processamento e marca como `Completed`. A mensagem só é removida após sucesso. Falhas deixam a mensagem na fila para o retry padrão do SQS; mensagens inválidas ou com `reportId` inexistente são descartadas como não processáveis.

@@ -85,3 +85,5 @@ C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Venda
 C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Api\bin\Debug\net8.0\Vendas.Application.pdb
 C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Api\bin\Debug\net8.0\Vendas.Infrastructure.pdb
 C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Api\bin\Debug\net8.0\Vendas.Domain.pdb
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Api\bin\Debug\net8.0\AWSSDK.Core.dll
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Api\bin\Debug\net8.0\AWSSDK.SQS.dll

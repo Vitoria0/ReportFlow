@@ -28,6 +28,26 @@ public sealed class ReportRequest
 
     public static ReportRequest Create(DateTime startDate, DateTime endDate) =>
         new(Guid.NewGuid(), startDate, endDate);
+
+    public void MarkProcessing()
+    {
+        Status = ReportRequestStatus.Processing;
+        ErrorMessage = null;
+    }
+
+    public void MarkCompleted()
+    {
+        Status = ReportRequestStatus.Completed;
+        ProcessedAt = DateTime.UtcNow;
+        ErrorMessage = null;
+    }
+
+    public void MarkFailed(string errorMessage)
+    {
+        Status = ReportRequestStatus.Failed;
+        ProcessedAt = DateTime.UtcNow;
+        ErrorMessage = errorMessage;
+    }
 }
 
 public static class ReportRequestStatus

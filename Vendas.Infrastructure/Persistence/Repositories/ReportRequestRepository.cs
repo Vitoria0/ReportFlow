@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Vendas.Application.Abstractions;
 using Vendas.Domain.Entities;
 
@@ -9,4 +10,7 @@ public sealed class ReportRequestRepository(VendasDbContext dbContext) : IReport
     {
         await dbContext.ReportRequests.AddAsync(reportRequest, cancellationToken);
     }
+
+    public Task<ReportRequest?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+        dbContext.ReportRequests.SingleOrDefaultAsync(request => request.Id == id, cancellationToken);
 }

@@ -28,7 +28,7 @@ public sealed class SqsReportQueuePublisher(
         await sqsClient.SendMessageAsync(new SendMessageRequest
         {
             QueueUrl = queueUrl,
-            MessageBody = JsonSerializer.Serialize(message)
+            MessageBody = JsonSerializer.Serialize(message, new JsonSerializerOptions(JsonSerializerDefaults.Web))
         }, cancellationToken);
     }
 
