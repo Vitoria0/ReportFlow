@@ -1,0 +1,16 @@
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Application\bin\Debug\net8.0\Vendas.Application.deps.json
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Application\bin\Debug\net8.0\Vendas.Application.dll
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Application\bin\Debug\net8.0\Vendas.Application.pdb
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Application\bin\Debug\net8.0\Vendas.Domain.dll
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Application\bin\Debug\net8.0\Vendas.Domain.pdb
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Application\obj\Debug\net8.0\Vendas.Application.csproj.AssemblyReference.cache
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Application\obj\Debug\net8.0\Vendas.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Application\obj\Debug\net8.0\Vendas.Application.AssemblyInfoInputs.cache
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Application\obj\Debug\net8.0\Vendas.Application.AssemblyInfo.cs
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Application\obj\Debug\net8.0\Vendas.Application.csproj.CoreCompileInputs.cache
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Application\obj\Debug\net8.0\Vendas.Application.sourcelink.json
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Application\obj\Debug\net8.0\Vendas.A.4EC8CC58.Up2Date
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Application\obj\Debug\net8.0\Vendas.Application.dll
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Application\obj\Debug\net8.0\refint\Vendas.Application.dll
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Application\obj\Debug\net8.0\Vendas.Application.pdb
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Application\obj\Debug\net8.0\ref\Vendas.Application.dll

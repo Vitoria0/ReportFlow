@@ -12,5 +12,18 @@ services:
       - sqlserver-data:/var/opt/mssql
     restart: unless-stopped
 
+  localstack:
+    image: localstack/localstack:3.8
+    container_name: vendas-localstack
+    environment:
+      SERVICES: sqs
+      AWS_DEFAULT_REGION: us-east-1
+    ports:
+      - "4566:4566"
+    volumes:
+      - localstack-data:/var/lib/localstack
+    restart: unless-stopped
+
 volumes:
   sqlserver-data:
+  localstack-data:

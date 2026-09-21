@@ -1,10 +1,11 @@
-using Microsoft.EntityFrameworkCore;
-using Vendas.Api.Data;
+using Vendas.Application;
+using Vendas.Infrastructure;
+using Vendas.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<VendasDbContext>(options =>
-	options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();

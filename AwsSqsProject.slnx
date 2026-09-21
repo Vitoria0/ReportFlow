@@ -1,3 +1,6 @@
 <Solution>
   <Project Path="Vendas.Api/Vendas.Api.csproj" />
+  <Project Path="Vendas.Application/Vendas.Application.csproj" />
+  <Project Path="Vendas.Domain/Vendas.Domain.csproj" />
+  <Project Path="Vendas.Infrastructure/Vendas.Infrastructure.csproj" />
 </Solution>

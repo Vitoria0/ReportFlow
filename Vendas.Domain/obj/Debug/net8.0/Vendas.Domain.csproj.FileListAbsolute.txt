@@ -1,0 +1,12 @@
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Domain\bin\Debug\net8.0\Vendas.Domain.deps.json
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Domain\bin\Debug\net8.0\Vendas.Domain.dll
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Domain\bin\Debug\net8.0\Vendas.Domain.pdb
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Domain\obj\Debug\net8.0\Vendas.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Domain\obj\Debug\net8.0\Vendas.Domain.AssemblyInfoInputs.cache
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Domain\obj\Debug\net8.0\Vendas.Domain.AssemblyInfo.cs
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Domain\obj\Debug\net8.0\Vendas.Domain.csproj.CoreCompileInputs.cache
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Domain\obj\Debug\net8.0\Vendas.Domain.sourcelink.json
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Domain\obj\Debug\net8.0\Vendas.Domain.dll
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Domain\obj\Debug\net8.0\refint\Vendas.Domain.dll
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Domain\obj\Debug\net8.0\Vendas.Domain.pdb
+C:\Users\vitoria\Documents\Vitoria Estudos\aws\aws-project\aws-sqs-project\Vendas.Domain\obj\Debug\net8.0\ref\Vendas.Domain.dll

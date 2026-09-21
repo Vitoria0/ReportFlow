@@ -1,15 +1,36 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Vendas.Api.Contracts;
-using Vendas.Api.Data;
-using Vendas.Api.Models;
+using Vendas.Application.Contracts;
+using Vendas.Application.UseCases.Vendas;
+using Vendas.Domain.Exceptions;
 
 namespace Vendas.Api.Controllers;
 
 [ApiController]
 [Route("api/vendas")]
-public sealed class VendasController(VendasDbContext dbContext) : ControllerBase
+public sealed class VendasController(
+    RegistrarVendaHandler registrarVendaHandler,
+    ListarVendasHandler listarVendasHandler,
+    ObterVendaPorIdHandler obterVendaPorIdHandler) : ControllerBase
 {
+    [HttpGet]
+    [ProducesResponseType(typeof(IReadOnlyCollection<VendaResumoResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IReadOnlyCollection<VendaResumoResponse>>> Listar(
+        [FromQuery] DateTime? dataInicio,
+        [FromQuery] DateTime? dataFim,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(await listarVendasHandler.HandleAsync(dataInicio, dataFim, cancellationToken));
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(exception.Message);
+        }
+    }
+
     [HttpPost]
     [ProducesResponseType(typeof(VendaResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -17,49 +38,23 @@ public sealed class VendasController(VendasDbContext dbContext) : ControllerBase
         RegistrarVendaRequest request,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Cliente))
-            ModelState.AddModelError(nameof(request.Cliente), "O cliente e obrigatorio.");
-
-        if (request.Itens is null || request.Itens.Count == 0)
-            ModelState.AddModelError(nameof(request.Itens), "A venda deve possuir pelo menos um item.");
-
-        if (request.Itens?.Any(item => string.IsNullOrWhiteSpace(item.Produto)) == true)
-            ModelState.AddModelError(nameof(request.Itens), "O produto e obrigatorio.");
-
-        if (request.Itens?.Any(item => item.Quantidade <= 0) == true)
-            ModelState.AddModelError("Itens", "A quantidade deve ser maior que zero.");
-
-        if (request.Itens?.Any(item => item.ValorUnitario < 0) == true)
-            ModelState.AddModelError("Itens", "O valor unitário não pode ser negativo.");
-
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
-        var requestedItems = request.Itens!;
-        var itens = requestedItems.Select(item => new ItemVenda
+        try
         {
-            Id = Guid.NewGuid(),
-            Produto = item.Produto.Trim(),
-            Quantidade = item.Quantidade,
-            ValorUnitario = item.ValorUnitario,
-            ValorTotal = item.Quantidade * item.ValorUnitario
-        }).ToList();
+            var command = new RegistrarVendaCommand(
+                request.DataVenda!.Value,
+                request.Cliente,
+                request.Itens.Select(item => new RegistrarItemVendaCommand(
+                    item.Produto,
+                    item.Quantidade,
+                    item.ValorUnitario)).ToList());
 
-        var venda = new Venda
+            var response = await registrarVendaHandler.HandleAsync(command, cancellationToken);
+            return CreatedAtAction(nameof(ObterPorId), new { id = response.Id }, response);
+        }
+        catch (DomainValidationException exception)
         {
-            Id = Guid.NewGuid(),
-            DataVenda = request.DataVenda!.Value,
-            Cliente = request.Cliente.Trim(),
-            CreatedAt = DateTime.UtcNow,
-            Itens = itens,
-            ValorTotal = itens.Sum(item => item.ValorTotal)
-        };
-
-        dbContext.Vendas.Add(venda);
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        var response = ToResponse(venda);
-        return CreatedAtAction(nameof(ObterPorId), new { id = venda.Id }, response);
+            return BadRequest(exception.Message);
+        }
     }
 
     [HttpGet("{id:guid}")]
@@ -67,24 +62,7 @@ public sealed class VendasController(VendasDbContext dbContext) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<VendaResponse>> ObterPorId(Guid id, CancellationToken cancellationToken)
     {
-        var venda = await dbContext.Vendas
-            .AsNoTracking()
-            .Include(item => item.Itens)
-            .SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
-
-        return venda is null ? NotFound() : Ok(ToResponse(venda));
+        var response = await obterVendaPorIdHandler.HandleAsync(id, cancellationToken);
+        return response is null ? NotFound() : Ok(response);
     }
-
-    private static VendaResponse ToResponse(Venda venda) => new(
-        venda.Id,
-        venda.DataVenda,
-        venda.Cliente,
-        venda.Itens.Select(item => new ItemVendaResponse(
-            item.Id,
-            item.Produto,
-            item.Quantidade,
-            item.ValorUnitario,
-            item.ValorTotal)).ToList(),
-        venda.ValorTotal,
-        venda.CreatedAt);
 }
