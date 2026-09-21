@@ -1,110 +1,266 @@
-# Vendas API
+# Vendas e Relatorios
 
-API .NET 8 para registro de vendas com SQL Server em Docker.
+API .NET 8 para registro e consulta de vendas, com processamento assíncrono de relatórios por Amazon SQS.
+
+O projeto separa o recebimento das solicitações, as regras de negócio, a persistência e o processamento em background. A API responde rapidamente ao usuário, enquanto o Worker processa relatórios sem bloquear a requisição HTTP.
+
+## Funcionalidades
+
+- Registro de vendas com itens e cálculo automático dos totais.
+- Consulta de vendas com filtro opcional por período.
+- Solicitação assíncrona de relatório.
+- Consulta do status de uma solicitação.
+- Worker consumidor de mensagens SQS.
+- Relatório JSON com resumo e detalhamento por produto.
+- Retry automático e Dead Letter Queue para falhas definitivas.
+- Swagger para exploração dos endpoints.
 
 ## Arquitetura
 
-- `Vendas.Domain`: entidades, regras de negocio e excecoes de dominio.
-- `Vendas.Application`: casos de uso, contratos e abstracoes de persistencia.
-- `Vendas.Infrastructure`: Entity Framework Core, SQL Server e repositorios.
-- `Vendas.Api`: controllers, contratos HTTP, Swagger e composicao da aplicacao.
-- `Vendas.Worker`: consumidor SQS e processamento assíncrono das solicitações.
+```text
+Cliente
+  |
+  v
+Vendas.Api -----> SQL Server
+  |
+  +-------------> SQS: sales-reports
+                         |
+                         v
+                    Vendas.Worker -----> SQL Server
+                         |
+                         v
+                    reports/*.json
+```
 
-As dependencias seguem o fluxo `Api -> Application -> Domain` e `Api -> Infrastructure -> Application/Domain`.
+### Camadas
 
-## Executar
+#### `Vendas.Domain`
 
-1. Inicie o banco:
+Contém o núcleo do negócio, sem dependências de ASP.NET Core, EF Core ou AWS. Mantém as entidades `Venda`, `ItemVenda` e `ReportRequest`, suas validações, cálculos e estados (`Pending`, `Processing`, `Completed` e `Failed`).
+
+Essa independência mantém as regras testáveis e evita que detalhes de infraestrutura contaminem o domínio.
+
+#### `Vendas.Application`
+
+Implementa os casos de uso e define as abstrações necessárias para persistência, mensageria e geração de relatórios. A camada não conhece EF Core nem o SDK da AWS, o que permite trocar essas tecnologias sem alterar as regras de aplicação.
+
+#### `Vendas.Infrastructure`
+
+Implementa as integrações externas: Entity Framework Core, SQL Server, repositórios, publisher SQS, redrive policy, Dead Letter Queue e escrita do relatório JSON.
+
+#### `Vendas.Api`
+
+É a entrada HTTP da aplicação. Contém controllers, contratos HTTP, Swagger e composição de dependências. Não calcula totais, acessa o `DbContext` ou publica diretamente no SQS.
+
+#### `Vendas.Worker`
+
+É um processo independente que faz long polling no SQS, consulta o banco, gera o relatório, atualiza o status e remove a mensagem somente após sucesso.
+
+### Por que essa separação?
+
+O domínio permanece independente, os casos de uso podem ser executados por HTTP ou background worker, e as integrações externas ficam substituíveis. Isso reduz o acoplamento e facilita testes, manutenção e evolução do sistema.
+
+## Pré-requisitos
+
+- .NET SDK 8.
+- Docker Desktop com containers Linux habilitados.
+- Docker Compose.
+
+O ambiente local usa SQL Server 2022 e LocalStack com o serviço SQS em `http://localhost:4566`.
+
+## Executando o projeto
+
+Na raiz do projeto, inicie as dependências:
 
 ```powershell
 docker compose up -d
 ```
 
-2. Inicie a API:
+Inicie a API:
 
 ```powershell
-dotnet run --project .\Vendas.Api
+dotnet run --project .\Vendas.Api --launch-profile http
 ```
 
-Na primeira inicializacao a API cria o banco e as tabelas com `EnsureCreated`.
+A API ficará disponível em `http://localhost:5189`. O Swagger ficará em `http://localhost:5189/swagger`.
 
-## Endpoint
+Em outro terminal, inicie o Worker:
 
-`POST /api/vendas`
+```powershell
+dotnet run --project .\Vendas.Worker
+```
 
-Exemplo de corpo:
+Na primeira inicialização, a aplicação cria o banco e as tabelas usando `EnsureCreated`.
+
+Para verificar ou parar o ambiente:
+
+```powershell
+docker compose ps
+docker compose down
+```
+
+## Endpoints
+
+### Registrar venda
+
+```http
+POST /api/vendas
+Content-Type: application/json
+```
 
 ```json
 {
   "dataVenda": "2026-09-21T10:30:00Z",
   "cliente": "Maria Silva",
   "itens": [
-    {
-      "produto": "Teclado",
-      "quantidade": 2,
-      "valorUnitario": 50
-    },
-    {
-      "produto": "Mouse",
-      "quantidade": 1,
-      "valorUnitario": 80
-    }
+    { "produto": "Teclado", "quantidade": 2, "valorUnitario": 50 },
+    { "produto": "Mouse", "quantidade": 1, "valorUnitario": 80 }
   ]
 }
 ```
 
-A resposta `201 Created` contem `valorTotal` por item e da venda. Quantidade menor ou igual a zero, valor unitario negativo e vendas sem itens retornam `400 Bad Request`.
+A resposta é `201 Created`. O valor do primeiro item será `100` e o valor total da venda será `180`.
 
-Para consultar uma venda criada: `GET /api/vendas/{id}`.
+Quantidade menor ou igual a zero, valor unitário negativo, cliente ausente, produto ausente ou venda sem itens retornam `400 Bad Request`.
 
-Para consultar todas as vendas: `GET /api/vendas`.
+### Consultar vendas
 
-É possível filtrar por período usando `dataInicio` e `dataFim`, por exemplo:
-`GET /api/vendas?dataInicio=2026-09-01T00:00:00Z&dataFim=2026-09-30T23:59:59Z`.
-Os limites do período são inclusivos. Quando não houver vendas no período, a API retorna `200 OK` com uma lista vazia.
-
-## Solicitação assíncrona de relatório
-
-Inicie também o LocalStack para disponibilizar o SQS local:
-
-```powershell
-docker compose up -d
+```http
+GET /api/vendas
+GET /api/vendas/{id}
 ```
 
-Solicite um relatório com `POST /api/relatorios`:
+Filtros opcionais e inclusivos:
+
+```http
+GET /api/vendas?dataInicio=2026-09-01T00:00:00Z&dataFim=2026-09-30T23:59:59Z
+```
+
+Sem vendas no período, a API retorna `200 OK` com uma lista vazia.
+
+### Solicitar relatório
+
+```http
+POST /api/relatorios
+Content-Type: application/json
+```
 
 ```json
 {
   "startDate": "2026-09-01T00:00:00Z",
-  "endDate": "2026-09-30T23:59:59Z"
+  "endDate": "2026-09-21T23:59:59Z"
 }
 ```
 
-A API persiste a solicitação com status `Pending`, publica uma mensagem na fila `sales-reports` e retorna imediatamente `202 Accepted`:
+A API persiste a solicitação com status `Pending`, publica uma mensagem no SQS e retorna imediatamente `202 Accepted`:
 
 ```json
 {
-  "reportId": "8c5...",
+  "reportId": "8c5f7f54-6ec9-48a0-8a49-9aa6d7e5c111",
   "status": "Pending"
 }
 ```
 
-Consulte o status da solicitação em `GET /reports/{id}`. A resposta informa `Pending`, `Processing`, `Completed` ou `Failed`, além de `createdAt`, `processedAt` e `errorMessage` quando aplicável. Uma solicitação inexistente retorna `404 Not Found`.
+### Consultar status
 
-## Worker SQS
-
-Em outro terminal, inicie o consumidor:
-
-```powershell
-dotnet run --project .\Vendas.Worker
+```http
+GET /reports/{id}
 ```
 
-O worker recebe mensagens com `reportId`, `startDate` e `endDate`, busca as vendas no período diretamente no SQL Server, gera `reports/relatorio-{reportId}.json`, altera a solicitação para `Processing` e depois `Completed`. A mensagem só é removida após a geração do arquivo. Falhas deixam a mensagem na fila para o retry padrão do SQS; mensagens inválidas ou com `reportId` inexistente são descartadas como não processáveis.
+```json
+{
+  "id": "8c5f7f54-6ec9-48a0-8a49-9aa6d7e5c111",
+  "startDate": "2026-09-01T00:00:00Z",
+  "endDate": "2026-09-21T23:59:59Z",
+  "status": "Completed",
+  "createdAt": "2026-09-21T10:00:00Z",
+  "processedAt": "2026-09-21T10:00:08Z",
+  "errorMessage": null
+}
+```
 
-O JSON contém cabeçalho, quantidade de vendas, quantidade de itens vendidos, faturamento total, ticket médio e detalhamento agrupado por produto. Sem vendas, faturamento e ticket médio são `0`.
+Os status possíveis são `Pending`, `Processing`, `Completed` e `Failed`. Uma solicitação inexistente retorna `404 Not Found`.
+
+## Como funciona o SQS
+
+Quando `POST /api/relatorios` é chamado, a API cria a `ReportRequest`, persiste o status `Pending`, garante as filas e publica uma mensagem em `sales-reports`.
+
+A mensagem contém somente os dados necessários para localizar a solicitação:
+
+```json
+{
+  "reportId": "8c5f7f54-6ec9-48a0-8a49-9aa6d7e5c111",
+  "startDate": "2026-09-01T00:00:00Z",
+  "endDate": "2026-09-21T23:59:59Z"
+}
+```
+
+Clientes, produtos e valores não são enviados na mensagem. O Worker consulta esses dados diretamente no SQL Server.
+
+O Worker usa long polling, recebe até 10 mensagens por busca e aplica visibility timeout de 60 segundos. Para cada mensagem válida, ele:
+
+1. Localiza a solicitação pelo `reportId`.
+2. Altera o status para `Processing`.
+3. Consulta no banco somente as vendas do período.
+4. Calcula e grava o relatório.
+5. Marca a solicitação como `Completed`.
+6. Remove a mensagem usando o receipt handle.
 
 ## Retry e Dead Letter Queue
 
-Falhas temporárias não removem a mensagem da fila principal. Após o visibility timeout de 60 segundos, o SQS disponibiliza a mensagem novamente para o Worker. O limite padrão é de 3 recebimentos, configurado em `AWS:MaxReceiveAttempts`.
+Em uma falha temporária, o Worker não chama `DeleteMessage`. Após o visibility timeout, o SQS disponibiliza a mensagem novamente.
 
-Após exceder esse limite, a fila `sales-reports` encaminha a mensagem para `sales-reports-dlq` por meio da redrive policy. Na última tentativa, a solicitação persistida é marcada como `Failed` com a mensagem do erro. Em uma tentativa bem-sucedida, o Worker marca a solicitação como `Completed` e remove a mensagem.
+O limite padrão é de 3 recebimentos e pode ser alterado em `Vendas.Worker/appsettings.json`:
+
+```json
+{
+  "AWS": {
+    "MaxReceiveAttempts": 3
+  }
+}
+```
+
+Após o limite, a fila `sales-reports` encaminha a mensagem para `sales-reports-dlq` por meio da redrive policy. Na última tentativa, a solicitação é marcada como `Failed`. Em caso de sucesso, ela é marcada como `Completed` e a mensagem é removida.
+
+Mensagens inválidas ou com `reportId` inexistente não são tratadas como relatórios válidos. Falhas de processamento permanecem sujeitas ao retry.
+
+## Relatório gerado
+
+O Worker grava `reports/relatorio-{reportId}.json` com:
+
+- cabeçalho e período;
+- quantidade de vendas;
+- quantidade de itens vendidos;
+- faturamento total, calculado pela soma de `Venda.ValorTotal`;
+- ticket médio, calculado como faturamento total dividido pela quantidade de vendas;
+- detalhamento por produto com quantidade vendida e faturamento.
+
+Quando não existem vendas, faturamento total e ticket médio são `0`, e o detalhamento fica vazio.
+
+## Configuração e segurança
+
+O SQL Server local usa a connection string configurada nos arquivos `appsettings.json` da API e do Worker. A senha existente é apenas para desenvolvimento local.
+
+No ambiente local, o SQS usa:
+
+```json
+{
+  "AWS": {
+    "Region": "us-east-1",
+    "SqsServiceUrl": "http://localhost:4566",
+    "ReportQueueName": "sales-reports",
+    "ReportDeadLetterQueueName": "sales-reports-dlq"
+  }
+}
+```
+
+Em produção, remova `SqsServiceUrl` e use IAM Role, secret manager ou a cadeia padrão de credenciais da AWS. Nunca inclua access keys no código ou no repositório.
+
+## Testes e validação
+
+```powershell
+dotnet build
+dotnet test
+```
+
+Os endpoints também podem ser explorados pelo Swagger em `http://localhost:5189/swagger`.
