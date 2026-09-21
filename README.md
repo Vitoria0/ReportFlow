@@ -1,4 +1,4 @@
-# Vendas e Relatorios
+# ReportFlow
 
 API .NET 8 para registro e consulta de vendas, com processamento assíncrono de relatórios por Amazon SQS.
 
