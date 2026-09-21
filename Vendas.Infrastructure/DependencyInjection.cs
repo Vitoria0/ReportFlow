@@ -8,6 +8,7 @@ using Vendas.Application.Abstractions;
 using Vendas.Infrastructure.Persistence;
 using Vendas.Infrastructure.Persistence.Repositories;
 using Vendas.Infrastructure.Messaging;
+using Vendas.Infrastructure.Reports;
 
 namespace Vendas.Infrastructure;
 
@@ -37,6 +38,7 @@ public static class DependencyInjection
                 : new AmazonSQSClient(new BasicAWSCredentials("test", "test"), config);
         });
         services.AddScoped<IReportQueuePublisher, SqsReportQueuePublisher>();
+        services.AddScoped<IRelatorioWriter, JsonRelatorioWriter>();
         return services;
     }
 }

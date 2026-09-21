@@ -68,13 +68,22 @@ public sealed class ReportQueueWorker(
                 queueMessage.StartDate,
                 queueMessage.EndDate), cancellationToken);
 
-            if (!processed)
+            if (processed is null)
             {
                 logger.LogWarning(
                     "ReportRequest {ReportId} nao encontrada; removendo mensagem {MessageId}",
                     queueMessage.ReportId,
                     message.MessageId);
             }
+                    else
+                    {
+                    logger.LogInformation(
+                        "Relatorio {ReportId} processado com {QuantidadeVendas} vendas e total {ValorTotal}. Possui vendas: {PossuiVendas}",
+                        processed.ReportId,
+                        processed.QuantidadeVendas,
+                        processed.ValorTotal,
+                        processed.PossuiVendas);
+                    }
 
             await DeleteMessageAsync(queueUrl, message, cancellationToken);
         }

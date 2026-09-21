@@ -18,6 +18,7 @@ public sealed class VendaRepository(VendasDbContext dbContext) : IVendaRepositor
     {
         var query = dbContext.Vendas
             .AsNoTracking()
+            .Include(venda => venda.Itens)
             .AsQueryable();
 
         if (dataInicio.HasValue)

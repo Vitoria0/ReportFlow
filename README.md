@@ -97,4 +97,6 @@ Em outro terminal, inicie o consumidor:
 dotnet run --project .\Vendas.Worker
 ```
 
-O worker recebe mensagens com `reportId`, `startDate` e `endDate`, altera a solicitação para `Processing`, executa o processamento e marca como `Completed`. A mensagem só é removida após sucesso. Falhas deixam a mensagem na fila para o retry padrão do SQS; mensagens inválidas ou com `reportId` inexistente são descartadas como não processáveis.
+O worker recebe mensagens com `reportId`, `startDate` e `endDate`, busca as vendas no período diretamente no SQL Server, gera `reports/relatorio-{reportId}.json`, altera a solicitação para `Processing` e depois `Completed`. A mensagem só é removida após a geração do arquivo. Falhas deixam a mensagem na fila para o retry padrão do SQS; mensagens inválidas ou com `reportId` inexistente são descartadas como não processáveis.
+
+O JSON contém cabeçalho, quantidade de vendas, quantidade de itens vendidos, faturamento total, ticket médio e detalhamento agrupado por produto. Sem vendas, faturamento e ticket médio são `0`.
